@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@DynamoDBTable(tableName = "customItem")
+@DynamoDBTable(tableName = "DynamoDbCustomItem")
 public class CustomItem {
     @DynamoDBHashKey
     private String id;
