@@ -28,8 +28,9 @@ export class CdkStack extends Stack {
       ]
     });
 
-    // Application target group
+    // Application target group - default
     const targetGroupDefault = new elbv2.ApplicationTargetGroup(this, "TargetGroupDefault", {
+      targetGroupName: "TargetGroupDefault",
       targetType: elbv2.TargetType.INSTANCE,
       port: 80,
       protocol: elbv2.ApplicationProtocol.HTTP,
@@ -66,13 +67,6 @@ export class CdkStack extends Stack {
       defaultTargetGroups: [targetGroupDefault],
     });
 
-    new elbv2.ApplicationListenerRule(this, "PersistenceRoute", {
-      listener: listener,
-      priority: 1,
-      action: elbv2.ListenerAction.forward([targetGroupDefault]),
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/persistence/*"])]
-    });
-
     // ECS task execution role
     const executionRolePolicy =  new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
@@ -103,7 +97,7 @@ export class CdkStack extends Stack {
     fargateTaskDefinitionPersistence.addToExecutionRolePolicy(executionRolePolicy);
 
     const containerPersistence = fargateTaskDefinitionPersistence.addContainer("persistence", {
-      image: ecs.ContainerImage.fromRegistry("uturkarslan/aws-ecs-persistence:latest"),
+      image: ecs.ContainerImage.fromRegistry("uturkarslan/aws-ecs-persistence:1658602311"),
       logging: ecs.LogDrivers.awsLogs({streamPrefix: 'aws-ecs-persistence'}),
       // environment: { 
       //   'DYNAMODB_MESSAGES_TABLE': table.tableName,
@@ -140,15 +134,42 @@ export class CdkStack extends Stack {
       securityGroups: [securityGroupFargatePersistence],
     });
 
-    fargateServicePersistence.registerLoadBalancerTargets({
-      containerName: containerPersistence.containerName,
-      containerPort: 8080,
-      newTargetGroupId: "TargetGroupFargatePersistence",
-      listener: ecs.ListenerConfig.applicationListener(listener, {
-        targetGroupName: "TargetGroupFargatePersistence",
-        port: 8080,
-        protocol: elbv2.ApplicationProtocol.HTTP
-      }),
+    // fargateServicePersistence.registerLoadBalancerTargets({
+    //   containerName: containerPersistence.containerName,
+    //   containerPort: 8080,
+    //   newTargetGroupId: "TargetGroupFargatePersistence",
+    //   listener: ecs.ListenerConfig.applicationListener(listener, {
+    //     targetGroupName: "TargetGroupFargatePersistence",
+    //     port: 80,
+    //     protocol: elbv2.ApplicationProtocol.HTTP,
+    //     healthCheck: {
+    //       enabled: false
+    //     }
+    //   }),
+    // });
+
+    // Application target group - persistences
+    const targetGroupFargatePersistence = new elbv2.ApplicationTargetGroup(this, "TargetGroupFargatePersistence", {
+      targetGroupName: "TargetGroupFargatePersistence",
+      targetType: elbv2.TargetType.IP,
+      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      vpc: vpc,
+      healthCheck: {
+        enabled: true,
+        path: "/persistence/health",
+        port: "8080",
+        healthyHttpCodes: "200"
+      }
+    });
+
+    fargateServicePersistence.attachToApplicationTargetGroup(targetGroupFargatePersistence);
+
+    new elbv2.ApplicationListenerRule(this, "PersistenceRoute", {
+      listener: listener,
+      priority: 1,
+      action: elbv2.ListenerAction.forward([targetGroupFargatePersistence]),
+      conditions: [elbv2.ListenerCondition.pathPatterns(["/persistence/*"])]
     });
 
     // Dynamodb - CustomItem
