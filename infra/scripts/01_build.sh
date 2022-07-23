@@ -17,6 +17,8 @@ persistence["port"]=8080
 
 # Persistence
 persistenceDockerTag="${DOCKERHUB_NAME}/${persistence[name]}:$(date +%s)"
+echo "Docker tag: $persistenceDockerTag"
+
 docker build \
   --platform linux/amd64 \
   --build-arg newRelicAppName=${persistence[name]} \
