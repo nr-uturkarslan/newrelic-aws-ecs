@@ -1,16 +1,17 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Stack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 export class CdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     // VPC
-    const vpc = new ec2.Vpc(this, "VpcTest", {
+    const vpc = new ec2.Vpc(this, "Vpc", {
       cidr: "10.0.0.0/16",
       maxAzs: 2,
       subnetConfiguration: [
@@ -28,7 +29,7 @@ export class CdkStack extends Stack {
     });
 
     // Application target group
-    const targetGroupDefault = new elbv2.ApplicationTargetGroup(this, "TgTestDefault", {
+    const targetGroupDefault = new elbv2.ApplicationTargetGroup(this, "TargetGroupDefault", {
       targetType: elbv2.TargetType.INSTANCE,
       port: 80,
       protocol: elbv2.ApplicationProtocol.HTTP,
@@ -36,7 +37,7 @@ export class CdkStack extends Stack {
     });
 
     // Security group - Load balancer
-    const securityGroupLoadBalancer = new ec2.SecurityGroup(this, "SgTestAlb", {
+    const securityGroupLoadBalancer = new ec2.SecurityGroup(this, "SecurityGroupLoadBalancer", {
       securityGroupName: "SgTestAlb",
       vpc: vpc,
       allowAllOutbound: true,
@@ -50,8 +51,8 @@ export class CdkStack extends Stack {
     );
 
     // Load balancer
-    const alb = new elbv2.ApplicationLoadBalancer(this, "AlbTest", {
-      loadBalancerName: "AlbTest",
+    const alb = new elbv2.ApplicationLoadBalancer(this, "LoadBalancer", {
+      loadBalancerName: "LoadBalancer",
       internetFacing: true,
       vpc: vpc,
       vpcSubnets: {subnetType: ec2.SubnetType.PUBLIC},
@@ -59,17 +60,17 @@ export class CdkStack extends Stack {
       securityGroup: securityGroupLoadBalancer,
     });
 
-    const listener = alb.addListener("AlbListenerTest", {
+    const listener = alb.addListener("LoadBalancerListener", {
       port: 80,
       open: true,
       defaultTargetGroups: [targetGroupDefault],
     });
 
-    new elbv2.ApplicationListenerRule(this, "app-route", {
+    new elbv2.ApplicationListenerRule(this, "PersistenceRoute", {
       listener: listener,
       priority: 1,
       action: elbv2.ListenerAction.forward([targetGroupDefault]),
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/app/*"])]
+      conditions: [elbv2.ListenerCondition.pathPatterns(["/persistence/*"])]
     });
 
     // ECS task execution role
@@ -87,77 +88,81 @@ export class CdkStack extends Stack {
     });
 
     // ECS cluster
-    const ecsCluster = new ecs.Cluster(this, "EcsTest", {
-      clusterName: "EcsTest",
+    const ecsCluster = new ecs.Cluster(this, "EcsCluster", {
+      clusterName: "EcsCluster",
       containerInsights: true,
       vpc: vpc,
     });
 
     // Task definition
-    const fargateTaskDefinition = new ecs.FargateTaskDefinition(this, 'TdTest', {
-      memoryLimitMiB: 512,
-      cpu: 256,
+    const fargateTaskDefinitionPersistence = new ecs.FargateTaskDefinition(this, 'FargateTaskDefinitionPersistence', {
+      memoryLimitMiB: 4096,
+      cpu: 2048,
     });
 
-    fargateTaskDefinition.addToExecutionRolePolicy(executionRolePolicy);
+    fargateTaskDefinitionPersistence.addToExecutionRolePolicy(executionRolePolicy);
 
-    const container = fargateTaskDefinition.addContainer("backend", {
-      image: ecs.ContainerImage.fromRegistry("nginx:latest"),
-      logging: ecs.LogDrivers.awsLogs({streamPrefix: 'nginx-test'}),
+    const containerPersistence = fargateTaskDefinitionPersistence.addContainer("persistence", {
+      image: ecs.ContainerImage.fromRegistry("uturkarslan/aws-ecs-persistence:latest"),
+      logging: ecs.LogDrivers.awsLogs({streamPrefix: 'aws-ecs-persistence'}),
       // environment: { 
       //   'DYNAMODB_MESSAGES_TABLE': table.tableName,
       //   'APP_ID' : 'my-app'
       // }
     });
     
-    container.addPortMappings({
-      containerPort: 80,
-      hostPort: 80
+    containerPersistence.addPortMappings({
+      containerPort: 8080,
     });
 
-    // Security group - Fargate
-    const securityGroupFargate = new ec2.SecurityGroup(this, "SgTestFargate", {
-      securityGroupName: "SgTestFargate",
+    // Security group - Fargate persistence
+    const securityGroupFargatePersistence = new ec2.SecurityGroup(this, "SecurityGroupFargatePersistence", {
+      securityGroupName: "SecurityGroupFargatePersistence",
       vpc: vpc,
       allowAllOutbound: true,
-      description: 'Security group for application load balancer.',
+      description: "Security group for persistence application.",
     });
 
-    securityGroupFargate.addIngressRule(
+    securityGroupFargatePersistence.addIngressRule(
       ec2.Peer.securityGroupId(securityGroupLoadBalancer.securityGroupId),
       ec2.Port.tcp(80),
       'Allow HTTP access only from ALB.',
     );
 
-    // ECS Fargate Service
-    const fargateService = new ecs.FargateService(this, 'EcsServiceTest', {
-      serviceName: "EcsServiceName",
+    // ECS Fargate Service - Persistence
+    const fargateServicePersistence = new ecs.FargateService(this, "FargateServicePersistence", {
+      serviceName: "FargateServicePersistence",
       assignPublicIp: false,
       desiredCount: 1,
       cluster: ecsCluster,
-      taskDefinition: fargateTaskDefinition,
+      taskDefinition: fargateTaskDefinitionPersistence,
       vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_NAT},
-      securityGroups: [securityGroupFargate],
+      securityGroups: [securityGroupFargatePersistence],
     });
 
-    fargateService.registerLoadBalancerTargets({
-      containerName: container.containerName,
-      containerPort: 80,
-      newTargetGroupId: "EcsFargate",
+    fargateServicePersistence.registerLoadBalancerTargets({
+      containerName: containerPersistence.containerName,
+      containerPort: 8080,
+      newTargetGroupId: "TargetGroupFargatePersistence",
       listener: ecs.ListenerConfig.applicationListener(listener, {
-        targetGroupName: "TgEcsFargate",
-        port: 80,
+        targetGroupName: "TargetGroupFargatePersistence",
+        port: 8080,
         protocol: elbv2.ApplicationProtocol.HTTP
       }),
     });
 
-    // listener.addTargetGroups("default", {
-    //   targetGroups: [targetGroupDefault]
-    // });
+    // Dynamodb - CustomItem
+    const dynamoDbTableCustomItem = new dynamodb.Table(this, "DynamoDbCustomItem", {
+      tableName: "DynamoDbCustomItem",
+      billingMode: dynamodb.BillingMode.PROVISIONED,
+      readCapacity: 1,
+      writeCapacity: 1,
+      removalPolicy: RemovalPolicy.DESTROY,
+      partitionKey: {name: "id", type: dynamodb.AttributeType.STRING},
+      // sortKey: {name: 'createdAt', type: dynamodb.AttributeType.NUMBER},
+      pointInTimeRecovery: true,
+    });
 
-    // listener.addTargets("ECS", {
-    //   port: 80,
-    //   targets: [fargateService]
-    // });
+    dynamoDbTableCustomItem.grantReadWriteData(fargateServicePersistence.taskDefinition.taskRole);
   }
 }
