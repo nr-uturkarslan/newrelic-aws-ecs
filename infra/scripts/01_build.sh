@@ -11,6 +11,11 @@ declare -A persistence
 persistence["name"]="aws-ecs-persistence"
 persistence["port"]=8080
 
+# Persistence
+declare -A proxy
+proxy["name"]="aws-ecs-proxy"
+proxy["port"]=8080
+
 ####################
 ### Build & Push ###
 ####################
@@ -26,3 +31,15 @@ docker build \
   --tag $persistenceDockerTag \
   "../../apps/persistence/."
 docker push $persistenceDockerTag
+
+# Proxy
+proxyDockerTag="${DOCKERHUB_NAME}/${proxy[name]}:$(date +%s)"
+echo "Docker tag: $proxyDockerTag"
+
+docker build \
+  --platform linux/amd64 \
+  --build-arg newRelicAppName=${proxy[name]} \
+  --build-arg newRelicLicenseKey=$NEWRELIC_LICENSE_KEY \
+  --tag $proxyDockerTag \
+  "../../apps/proxy/."
+docker push $proxyDockerTag
