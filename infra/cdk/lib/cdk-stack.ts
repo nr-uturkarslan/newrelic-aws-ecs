@@ -1,8 +1,9 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import { SubnetType } from 'aws-cdk-lib/aws-ec2';
-import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import { Construct } from 'constructs';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import * as ecs from "aws-cdk-lib/aws-ecs";
+import * as iam from "aws-cdk-lib/aws-iam";
 
 export class CdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -63,5 +64,92 @@ export class CdkStack extends Stack {
       open: true,
       defaultTargetGroups: [targetGroupDefault]
     });
+
+    // ECS task execution role
+    const executionRolePolicy =  new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      resources: ['*'],
+      actions: [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ]
+    });
+
+    // ECS cluster
+    const ecsCluster = new ecs.Cluster(this, "EcsTest", {
+      clusterName: "EcsTest",
+      containerInsights: true,
+      vpc: vpc,
+    });
+
+    // Task definition
+    const fargateTaskDefinition = new ecs.FargateTaskDefinition(this, 'TdTest', {
+      memoryLimitMiB: 512,
+      cpu: 256,
+    });
+
+    fargateTaskDefinition.addToExecutionRolePolicy(executionRolePolicy);
+
+    const container = fargateTaskDefinition.addContainer("backend", {
+      image: ecs.ContainerImage.fromRegistry("nginx:latest"),
+      logging: ecs.LogDrivers.awsLogs({streamPrefix: 'nginx-test'}),
+      // environment: { 
+      //   'DYNAMODB_MESSAGES_TABLE': table.tableName,
+      //   'APP_ID' : 'my-app'
+      // }
+    });
+    
+    container.addPortMappings({
+      containerPort: 80
+    });
+
+    // Security group - Fargate
+    const securityGroupFargate = new ec2.SecurityGroup(this, "SgTestFargate", {
+      securityGroupName: "SgTestFargate",
+      vpc: vpc,
+      allowAllOutbound: true,
+      description: 'Security group for application load balancer.',
+    });
+
+    securityGroupFargate.addIngressRule(
+      ec2.Peer.securityGroupId(securityGroupLoadBalancer.securityGroupId),
+      ec2.Port.tcp(80),
+      'Allow HTTP access only from ALB.',
+    );
+
+    // ECS Fargate Service
+    const fargateService = new ecs.FargateService(this, 'EcsServiceTest', {
+      serviceName: "EcsServiceName",
+      assignPublicIp: false,
+      desiredCount: 1,
+      cluster: ecsCluster,
+      taskDefinition: fargateTaskDefinition,
+      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_NAT},
+      securityGroups: [securityGroupFargate],
+    });
+
+    fargateService.registerLoadBalancerTargets({
+      containerName: container.containerName,
+      containerPort: 80,
+      newTargetGroupId: "EcsFargate",
+      listener: ecs.ListenerConfig.applicationListener(listener, {
+        targetGroupName: "TgEcsFargate",
+        port: 80,
+        protocol: elbv2.ApplicationProtocol.HTTP
+      }),
+    });
+
+    // listener.addTargetGroups("default", {
+    //   targetGroups: [targetGroupDefault]
+    // });
+
+    // listener.addTargets("ECS", {
+    //   port: 80,
+    //   targets: [fargateService]
+    // });
   }
 }
