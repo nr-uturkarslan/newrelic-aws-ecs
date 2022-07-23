@@ -1,6 +1,6 @@
 package com.newrelic.aws.persistence.service.create;
 
-import com.newrelic.aws.persistence.dto.RequestDto;
+import com.newrelic.aws.persistence.service.create.dto.CreateRequestDto;
 import com.newrelic.aws.persistence.dto.ResponseDto;
 import com.newrelic.aws.persistence.entity.CustomItem;
 import com.newrelic.aws.persistence.repository.CustomItemRepository;
@@ -20,22 +20,22 @@ public class CreateCustomItemService {
     private final Logger logger = LoggerFactory.getLogger(CreateCustomItemService.class);
 
     @Autowired
-    private CustomItemRepository customerRepository;
+    private CustomItemRepository customItemRepository;
 
     public CreateCustomItemService() {}
 
     public ResponseEntity<ResponseDto<CustomItem>> run(
-            @RequestBody RequestDto requestDto
+            CreateRequestDto createRequestDto
     ) {
         logger.info("message:Creating custom item...");
-        var customItem = requestDto.getCustomItem();
+        var customItem = createRequestDto.getCustomItem();
         customItem.setId(UUID.randomUUID().toString());
 
-        customerRepository.saveCustomItem(customItem);
+        customItemRepository.saveCustomItem(customItem);
         logger.info("message:Custom item is created.");
 
         var responseDto = new ResponseDto<CustomItem>();
-        responseDto.setMessage("message:Custom item created successfully.");
+        responseDto.setMessage("Custom item is created.");
         responseDto.setData(customItem);
 
         return new ResponseEntity<>(responseDto, HttpStatus.CREATED);

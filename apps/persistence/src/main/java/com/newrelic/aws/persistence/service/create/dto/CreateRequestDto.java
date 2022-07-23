@@ -1,4 +1,4 @@
-package com.newrelic.aws.persistence.dto;
+package com.newrelic.aws.persistence.service.create.dto;
 
 import com.newrelic.aws.persistence.entity.CustomItem;
 import lombok.AllArgsConstructor;
@@ -10,6 +10,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RequestDto {
+public class CreateRequestDto {
     private CustomItem customItem;
 }

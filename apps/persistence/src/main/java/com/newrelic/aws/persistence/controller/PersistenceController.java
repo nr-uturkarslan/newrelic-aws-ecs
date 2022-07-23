@@ -1,15 +1,19 @@
 package com.newrelic.aws.persistence.controller;
 
-import com.newrelic.aws.persistence.dto.RequestDto;
+import com.newrelic.aws.persistence.service.create.dto.CreateRequestDto;
 import com.newrelic.aws.persistence.dto.ResponseDto;
 import com.newrelic.aws.persistence.entity.CustomItem;
 import com.newrelic.aws.persistence.service.create.CreateCustomItemService;
+import com.newrelic.aws.persistence.service.delete.DeleteCustomItemService;
+import com.newrelic.aws.persistence.service.list.ListCustomItemsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,24 +25,61 @@ public class PersistenceController {
     @Autowired
     private CreateCustomItemService createCustomItemService;
 
+    @Autowired
+    private ListCustomItemsService listCustomItemsService;
+
+    @Autowired
+    private DeleteCustomItemService deleteCustomItemService;
+
+    @GetMapping("health")
+    public ResponseEntity<ResponseDto<String>> health() {
+
+        var responseDto = new ResponseDto<String>();
+        responseDto.setMessage("OK");
+        return new ResponseEntity<>(responseDto, HttpStatus.OK);
+    }
+
     @PostMapping("create")
     public ResponseEntity<ResponseDto<CustomItem>> create(
             @RequestHeader Map<String, String> headers,
-            @RequestBody RequestDto requestDto
+            @RequestBody CreateRequestDto createRequestDto
     ) {
-        logger.info("Create method is triggered...");
+        logger.info("message:Create method is triggered...");
 
         for (var header : headers.entrySet()) {
             logger.info("Key:" + header.getKey());
             logger.info("Value:" + header.getValue());
         }
 
-        if (headers.containsKey("x-correlation-id"))
-            logger.info("Correlation ID: " + headers.get("x-correlation-id"));
+        var responseDto = createCustomItemService.run(createRequestDto);
 
-        var responseDto = createCustomItemService.run(requestDto);
+        logger.info("message:Create method is executed.");
 
-        logger.info("Create method is executed.");
+        return responseDto;
+    }
+
+    @GetMapping("list")
+    public ResponseEntity<ResponseDto<List<CustomItem>>> list(
+            @RequestParam(required = false) Integer limit
+    ) {
+        logger.info("message:List method is triggered...");
+
+        var responseDto = listCustomItemsService.run(limit);
+
+        logger.info("message:List method is executed.");
+
+        return responseDto;
+    }
+
+    @DeleteMapping("delete")
+    public ResponseEntity<ResponseDto<CustomItem>> create(
+            @RequestParam String customItemId
+    ) {
+        logger.info("message:Delete method is triggered...");
+
+        var responseDto = deleteCustomItemService.run(customItemId);
+
+        logger.info("message:Delete method is executed.");
 
         return responseDto;
     }
