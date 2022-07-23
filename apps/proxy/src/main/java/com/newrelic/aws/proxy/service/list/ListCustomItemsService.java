@@ -37,7 +37,7 @@ public class ListCustomItemsService {
             Integer limit
     ) {
         var loadBalancerUrl = System.getenv("LOAD_BALANCER_URL");
-        var url = loadBalancerUrl + "/persistence?limit=" + limit;
+        var url = loadBalancerUrl + "/persistence/delete?limit=" + limit;
 
         return restTemplate.exchange(url, HttpMethod.GET, null,
                 new ParameterizedTypeReference<ResponseDto<List<CustomItem>>>() {});

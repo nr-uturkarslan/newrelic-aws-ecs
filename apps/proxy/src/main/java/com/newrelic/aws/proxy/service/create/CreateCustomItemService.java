@@ -37,7 +37,7 @@ public class CreateCustomItemService {
             CreateRequestDto createRequestDto
     ) {
         var loadBalancerUrl = System.getenv("LOAD_BALANCER_URL");
-        var url = loadBalancerUrl + "/persistence";
+        var url = loadBalancerUrl + "/persistence/create";
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

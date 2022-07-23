@@ -35,7 +35,7 @@ public class DeleteCustomItemService {
             String customItemId
     ) {
         var loadBalancerUrl = System.getenv("LOAD_BALANCER_URL");
-        var url = loadBalancerUrl + "/persistence?customItemId=" + customItemId;
+        var url = loadBalancerUrl + "/persistence/list?customItemId=" + customItemId;
 
         return restTemplate.exchange(url, HttpMethod.DELETE, null,
                 new ParameterizedTypeReference<ResponseDto<CustomItem>>() {});
