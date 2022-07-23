@@ -1,10 +1,13 @@
-import { Stack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
+import { Stack, StackProps, RemovalPolicy, CfnOutput } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+
+const dockerImagePersistence = "uturkarslan/aws-ecs-persistence:1658608497"
+const dockerImageProxy = "uturkarslan/aws-ecs-proxy:1658609581"
 
 export class CdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -88,7 +91,11 @@ export class CdkStack extends Stack {
       vpc: vpc,
     });
 
-    // Task definition
+    // ------------------- //
+    // --- PERSISTENCE --- //
+    // ------------------- //
+
+    // Task definition - persistence
     const fargateTaskDefinitionPersistence = new ecs.FargateTaskDefinition(this, 'FargateTaskDefinitionPersistence', {
       memoryLimitMiB: 4096,
       cpu: 2048,
@@ -97,12 +104,8 @@ export class CdkStack extends Stack {
     fargateTaskDefinitionPersistence.addToExecutionRolePolicy(executionRolePolicy);
 
     const containerPersistence = fargateTaskDefinitionPersistence.addContainer("persistence", {
-      image: ecs.ContainerImage.fromRegistry("uturkarslan/aws-ecs-persistence:1658602311"),
+      image: ecs.ContainerImage.fromRegistry(dockerImagePersistence),
       logging: ecs.LogDrivers.awsLogs({streamPrefix: 'aws-ecs-persistence'}),
-      // environment: { 
-      //   'DYNAMODB_MESSAGES_TABLE': table.tableName,
-      //   'APP_ID' : 'my-app'
-      // }
     });
     
     containerPersistence.addPortMappings({
@@ -119,6 +122,7 @@ export class CdkStack extends Stack {
 
     securityGroupFargatePersistence.addIngressRule(
       ec2.Peer.securityGroupId(securityGroupLoadBalancer.securityGroupId),
+      // ec2.Peer.anyIpv4(),
       ec2.Port.tcp(80),
       'Allow HTTP access only from ALB.',
     );
@@ -148,7 +152,7 @@ export class CdkStack extends Stack {
     //   }),
     // });
 
-    // Application target group - persistences
+    // Application target group - persistence
     const targetGroupFargatePersistence = new elbv2.ApplicationTargetGroup(this, "TargetGroupFargatePersistence", {
       targetGroupName: "TargetGroupFargatePersistence",
       targetType: elbv2.TargetType.IP,
@@ -185,5 +189,79 @@ export class CdkStack extends Stack {
     });
 
     dynamoDbTableCustomItem.grantReadWriteData(fargateServicePersistence.taskDefinition.taskRole);
+
+    // ------------- //
+    // --- PROXY --- //
+    // ------------- //
+
+    // Task definition - proxy
+    const fargateTaskDefinitionProxy = new ecs.FargateTaskDefinition(this, 'FargateTaskDefinitionProxy', {
+      memoryLimitMiB: 4096,
+      cpu: 2048,
+    });
+
+    fargateTaskDefinitionProxy.addToExecutionRolePolicy(executionRolePolicy);
+
+    const containerProxy = fargateTaskDefinitionProxy.addContainer("proxy", {
+      image: ecs.ContainerImage.fromRegistry(dockerImageProxy),
+      logging: ecs.LogDrivers.awsLogs({streamPrefix: 'aws-ecs-proxy'}),
+      environment: { 
+        'LOAD_BALANCER_URL': alb.loadBalancerDnsName,
+      }
+    });
+    
+    containerProxy.addPortMappings({
+      containerPort: 8080,
+    });
+
+    // Security group - Fargate proxy
+    const securityGroupFargateProxy = new ec2.SecurityGroup(this, "SecurityGroupFargateProxy", {
+      securityGroupName: "SecurityGroupFargateProxy",
+      vpc: vpc,
+      allowAllOutbound: true,
+      description: "Security group for proxy application.",
+    });
+
+    securityGroupFargateProxy.addIngressRule(
+      ec2.Peer.securityGroupId(securityGroupLoadBalancer.securityGroupId),
+      // ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(80),
+      'Allow HTTP access only from ALB.',
+    );
+
+    // ECS Fargate Service - Proxy
+    const fargateServiceProxy = new ecs.FargateService(this, "FargateServiceProxy", {
+      serviceName: "FargateServiceProxy",
+      assignPublicIp: false,
+      desiredCount: 1,
+      cluster: ecsCluster,
+      taskDefinition: fargateTaskDefinitionProxy,
+      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_NAT},
+      securityGroups: [securityGroupFargateProxy],
+    });
+
+    // Application target group - proxy
+    const targetGroupFargateProxy = new elbv2.ApplicationTargetGroup(this, "TargetGroupFargateProxy", {
+      targetGroupName: "TargetGroupFargateProxy",
+      targetType: elbv2.TargetType.IP,
+      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      vpc: vpc,
+      healthCheck: {
+        enabled: true,
+        path: "/proxy/health",
+        port: "8080",
+        healthyHttpCodes: "200"
+      }
+    });
+
+    fargateServiceProxy.attachToApplicationTargetGroup(targetGroupFargateProxy);
+
+    new elbv2.ApplicationListenerRule(this, "ProxyRoute", {
+      listener: listener,
+      priority: 2,
+      action: elbv2.ListenerAction.forward([targetGroupFargateProxy]),
+      conditions: [elbv2.ListenerCondition.pathPatterns(["/proxy/*"])]
+    });
   }
 }
