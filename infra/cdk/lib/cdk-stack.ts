@@ -62,7 +62,14 @@ export class CdkStack extends Stack {
     const listener = alb.addListener("AlbListenerTest", {
       port: 80,
       open: true,
-      defaultTargetGroups: [targetGroupDefault]
+      defaultTargetGroups: [targetGroupDefault],
+    });
+
+    new elbv2.ApplicationListenerRule(this, "app-route", {
+      listener: listener,
+      priority: 1,
+      action: elbv2.ListenerAction.forward([targetGroupDefault]),
+      conditions: [elbv2.ListenerCondition.pathPatterns(["/app/*"])]
     });
 
     // ECS task execution role
@@ -104,7 +111,8 @@ export class CdkStack extends Stack {
     });
     
     container.addPortMappings({
-      containerPort: 80
+      containerPort: 80,
+      hostPort: 80
     });
 
     // Security group - Fargate
