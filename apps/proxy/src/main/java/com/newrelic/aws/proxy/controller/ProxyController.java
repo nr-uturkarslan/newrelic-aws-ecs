@@ -4,6 +4,7 @@ import com.newrelic.aws.proxy.dto.ResponseDto;
 import com.newrelic.aws.proxy.entity.CustomItem;
 import com.newrelic.aws.proxy.service.create.CreateCustomItemService;
 import com.newrelic.aws.proxy.service.create.dto.CreateRequestDto;
+import com.newrelic.aws.proxy.service.create.dto.CreateResponseDto;
 import com.newrelic.aws.proxy.service.delete.DeleteCustomItemService;
 import com.newrelic.aws.proxy.service.list.ListCustomItemsService;
 import org.slf4j.Logger;
@@ -40,11 +41,12 @@ public class ProxyController {
     }
 
     @PostMapping("create")
-    public ResponseEntity<ResponseDto<CustomItem>> create(
+    public ResponseEntity<ResponseDto<CreateResponseDto>> create(
+            @RequestHeader Map<String, String> headers,
             @RequestBody CreateRequestDto createRequestDto
     ) {
         logger.info("message:Create method is triggered...");
-        var responseDto = createCustomItemService.run(createRequestDto);
+        var responseDto = createCustomItemService.run(headers, createRequestDto);
 
         logger.info("message:Create method is executed.");
         return responseDto;
