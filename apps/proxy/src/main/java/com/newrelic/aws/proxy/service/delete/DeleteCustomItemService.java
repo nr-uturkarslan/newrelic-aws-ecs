@@ -34,10 +34,16 @@ public class DeleteCustomItemService {
     private ResponseEntity<ResponseDto<CustomItem>> makeRequestToPersistenceService(
             String customItemId
     ) {
-        var loadBalancerUrl = System.getenv("LOAD_BALANCER_URL");
-        var url = loadBalancerUrl + "/persistence/list?customItemId=" + customItemId;
+        var loadBalancerUrl = "http://" + System.getenv("LOAD_BALANCER_URL");
+        var persistenceDeleteUrl = loadBalancerUrl + "/persistence/delete?customItemId=" + customItemId;
+        logger.info("message:Persistence (delete) URL is " + persistenceDeleteUrl);
 
-        return restTemplate.exchange(url, HttpMethod.DELETE, null,
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        var entity = new HttpEntity<>(null, headers);
+        return restTemplate.exchange(persistenceDeleteUrl, HttpMethod.DELETE, entity,
                 new ParameterizedTypeReference<ResponseDto<CustomItem>>() {});
     }
 }

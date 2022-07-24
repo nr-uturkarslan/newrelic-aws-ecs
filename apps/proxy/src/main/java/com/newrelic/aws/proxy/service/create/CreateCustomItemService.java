@@ -36,15 +36,16 @@ public class CreateCustomItemService {
     private ResponseEntity<ResponseDto<CustomItem>> makeRequestToPersistenceService(
             CreateRequestDto createRequestDto
     ) {
-        var loadBalancerUrl = System.getenv("LOAD_BALANCER_URL");
-        var url = loadBalancerUrl + "/persistence/create";
+        var loadBalancerUrl = "http://" + System.getenv("LOAD_BALANCER_URL");
+        var persistenceCreateUrl = loadBalancerUrl + "/persistence/create";
+        logger.info("message:Persistence (create) URL is " + persistenceCreateUrl);
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         var entity = new HttpEntity<>(createRequestDto, headers);
-        return restTemplate.exchange(url, HttpMethod.POST, entity,
+        return restTemplate.exchange(persistenceCreateUrl, HttpMethod.POST, entity,
                 new ParameterizedTypeReference<ResponseDto<CustomItem>>() {});
     }
 }

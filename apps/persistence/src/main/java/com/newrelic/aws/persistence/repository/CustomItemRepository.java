@@ -1,7 +1,7 @@
 package com.newrelic.aws.persistence.repository;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
 import com.newrelic.aws.persistence.entity.CustomItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -22,10 +22,10 @@ public class CustomItemRepository {
         return dynamoDBMapper.load(CustomItem.class, id);
     }
 
-    public List<CustomItem> getCustomItems(Integer limit) {
-        var queryExpression = new DynamoDBQueryExpression<CustomItem>()
+    public List<CustomItem> getCustomItems(int limit) {
+        var scanExpression = new DynamoDBScanExpression()
                 .withLimit(limit);
-        return dynamoDBMapper.query(CustomItem.class, queryExpression);
+        return dynamoDBMapper.scan(CustomItem.class, scanExpression);
     }
 
     public void deleteCustomItem(CustomItem customItem) {

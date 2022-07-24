@@ -6,11 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -36,10 +36,16 @@ public class ListCustomItemsService {
     private ResponseEntity<ResponseDto<List<CustomItem>>> makeRequestToPersistenceService(
             Integer limit
     ) {
-        var loadBalancerUrl = System.getenv("LOAD_BALANCER_URL");
-        var url = loadBalancerUrl + "/persistence/delete?limit=" + limit;
+        var loadBalancerUrl = "http://" + System.getenv("LOAD_BALANCER_URL");
+        var persistenceListUrl = loadBalancerUrl + "/persistence/list?limit=" + limit;
+        logger.info("message:Persistence (list) URL is " + persistenceListUrl);
 
-        return restTemplate.exchange(url, HttpMethod.GET, null,
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        var entity = new HttpEntity<>(null, headers);
+        return restTemplate.exchange(persistenceListUrl, HttpMethod.GET, entity,
                 new ParameterizedTypeReference<ResponseDto<List<CustomItem>>>() {});
     }
 }
