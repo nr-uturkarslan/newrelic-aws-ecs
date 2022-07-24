@@ -36,7 +36,6 @@ public class DeleteCustomItemService {
     ) {
         var loadBalancerUrl = "http://" + System.getenv("LOAD_BALANCER_URL");
         var persistenceDeleteUrl = loadBalancerUrl + "/persistence/delete?customItemId=" + customItemId;
-        logger.info("message:Persistence (delete) URL is " + persistenceDeleteUrl);
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

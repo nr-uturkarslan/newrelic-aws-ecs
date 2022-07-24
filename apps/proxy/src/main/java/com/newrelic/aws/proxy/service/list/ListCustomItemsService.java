@@ -38,7 +38,6 @@ public class ListCustomItemsService {
     ) {
         var loadBalancerUrl = "http://" + System.getenv("LOAD_BALANCER_URL");
         var persistenceListUrl = loadBalancerUrl + "/persistence/list?limit=" + limit;
-        logger.info("message:Persistence (list) URL is " + persistenceListUrl);
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
