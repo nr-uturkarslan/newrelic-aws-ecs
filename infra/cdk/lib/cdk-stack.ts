@@ -7,9 +7,9 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 
-const dockerImagePersistence = "uturkarslan/aws-ecs-persistence:1658671258"
-const dockerImageValidation = "uturkarslan/aws-ecs-validation:1658671485"
-const dockerImageProxy = "uturkarslan/aws-ecs-proxy:1658673716"
+const dockerImagePersistence = "uturkarslan/aws-ecs-persistence:1658677250"
+const dockerImageValidation = "uturkarslan/aws-ecs-validation:1658677846"
+const dockerImageProxy = "uturkarslan/aws-ecs-proxy:1658677497"
 
 export class CdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -250,8 +250,8 @@ export class CdkStack extends Stack {
     });
 
     // 👇 create bucket
-    const s3BucketInvalidCustomItem = new s3.Bucket(this, "InvalidCustomItems", {
-      bucketName: "InvalidCustomItems",
+    const s3BucketInvalidCustomItem = new s3.Bucket(this, "invalid-custom-items", {
+      bucketName: "invalid-custom-items",
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       versioned: false,

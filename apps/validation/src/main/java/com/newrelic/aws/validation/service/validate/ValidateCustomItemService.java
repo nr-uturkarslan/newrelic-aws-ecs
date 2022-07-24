@@ -71,6 +71,8 @@ public class ValidateCustomItemService {
         }
         else {
             logger.warn("message:Custom item is invalid.");
+            saveInvalidCustomItemToS3(validationResult);
+
             responseDto.setMessage("Custom item is invalid.");
             return new ResponseEntity<>(responseDto, HttpStatus.BAD_REQUEST);
         }
@@ -136,7 +138,7 @@ public class ValidateCustomItemService {
             logger.info("message:Converted to input stream.");
 
             var putObjectRequest = new PutObjectRequest(
-                    "InvalidCustomItems",
+                    "invalid-custom-items",
                     validationResult.getValidationId() + ".json",
                     inputStream,
                     new ObjectMetadata()
