@@ -243,12 +243,10 @@ common: &default_settings
 
     # Track the following headers and store them as attributes in transaction.
     custom_request_headers:
-      - header_name: "X-Correlation-ID"
-        header_alias: "request.headers.correlationId"
-      - header_name: "X-Caller-Region"
-        header_alias: "request.headers.callerRegion"
-      - header_name: "X-Caller-Subscription"
-        header_alias: "request.headers.callerSubscription"
+      - header_name: "X-User-Name"
+        header_alias: "request.headers.userName"
+      - header_name: "X-User-Department"
+        header_alias: "request.headers.userDepartment"
 
   # Distributed tracing lets you see the path that a request takes through your distributed system.
   # This replaces the legacy Cross Application Tracing feature.
