@@ -5,9 +5,11 @@ import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as s3 from "aws-cdk-lib/aws-s3";
 
-const dockerImagePersistence = "uturkarslan/aws-ecs-persistence:1658608497"
-const dockerImageProxy = "uturkarslan/aws-ecs-proxy:1658609581"
+const dockerImagePersistence = "uturkarslan/aws-ecs-persistence:1658671258"
+const dockerImageValidation = "uturkarslan/aws-ecs-validation:1658671485"
+const dockerImageProxy = "uturkarslan/aws-ecs-proxy:1658673716"
 
 export class CdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -127,7 +129,7 @@ export class CdkStack extends Stack {
       'Allow HTTP access only from ALB.',
     );
 
-    // ECS Fargate Service - Persistence
+    // ECS Fargate Service - persistence
     const fargateServicePersistence = new ecs.FargateService(this, "FargateServicePersistence", {
       serviceName: "FargateServicePersistence",
       assignPublicIp: false,
@@ -137,20 +139,6 @@ export class CdkStack extends Stack {
       vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_NAT},
       securityGroups: [securityGroupFargatePersistence],
     });
-
-    // fargateServicePersistence.registerLoadBalancerTargets({
-    //   containerName: containerPersistence.containerName,
-    //   containerPort: 8080,
-    //   newTargetGroupId: "TargetGroupFargatePersistence",
-    //   listener: ecs.ListenerConfig.applicationListener(listener, {
-    //     targetGroupName: "TargetGroupFargatePersistence",
-    //     port: 80,
-    //     protocol: elbv2.ApplicationProtocol.HTTP,
-    //     healthCheck: {
-    //       enabled: false
-    //     }
-    //   }),
-    // });
 
     // Application target group - persistence
     const targetGroupFargatePersistence = new elbv2.ApplicationTargetGroup(this, "TargetGroupFargatePersistence", {
@@ -171,7 +159,7 @@ export class CdkStack extends Stack {
 
     new elbv2.ApplicationListenerRule(this, "PersistenceRoute", {
       listener: listener,
-      priority: 1,
+      priority: 3,
       action: elbv2.ListenerAction.forward([targetGroupFargatePersistence]),
       conditions: [elbv2.ListenerCondition.pathPatterns(["/persistence/*"])]
     });
@@ -189,6 +177,89 @@ export class CdkStack extends Stack {
     });
 
     dynamoDbTableCustomItem.grantReadWriteData(fargateServicePersistence.taskDefinition.taskRole);
+
+    // ------------------ //
+    // --- VALIDATION --- //
+    // ------------------ //
+
+    // Task definition - validation
+    const fargateTaskDefinitionValidation = new ecs.FargateTaskDefinition(this, 'FargateTaskDefinitionValidation', {
+      memoryLimitMiB: 4096,
+      cpu: 2048,
+    });
+
+    fargateTaskDefinitionValidation.addToExecutionRolePolicy(executionRolePolicy);
+
+    const containerValidation = fargateTaskDefinitionValidation.addContainer("validation", {
+      image: ecs.ContainerImage.fromRegistry(dockerImageValidation),
+      logging: ecs.LogDrivers.awsLogs({streamPrefix: 'aws-ecs-validation'}),
+    });
+    
+    containerValidation.addPortMappings({
+      containerPort: 8080,
+    });
+
+    // Security group - Fargate validation
+    const securityGroupFargateValidation = new ec2.SecurityGroup(this, "SecurityGroupFargateValidation", {
+      securityGroupName: "SecurityGroupFargateValidation",
+      vpc: vpc,
+      allowAllOutbound: true,
+      description: "Security group for validation application.",
+    });
+
+    securityGroupFargateValidation.addIngressRule(
+      ec2.Peer.securityGroupId(securityGroupLoadBalancer.securityGroupId),
+      // ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(80),
+      'Allow HTTP access only from ALB.',
+    );
+
+    // ECS Fargate Service - validation
+    const fargateServiceValidation = new ecs.FargateService(this, "FargateServiceValidation", {
+      serviceName: "FargateServiceValidation",
+      assignPublicIp: false,
+      desiredCount: 1,
+      cluster: ecsCluster,
+      taskDefinition: fargateTaskDefinitionValidation,
+      vpcSubnets: {subnetType: ec2.SubnetType.PRIVATE_WITH_NAT},
+      securityGroups: [securityGroupFargateValidation],
+    });
+
+    // Application target group - validation
+    const targetGroupFargateValidation = new elbv2.ApplicationTargetGroup(this, "TargetGroupFargateValidation", {
+      targetGroupName: "TargetGroupFargateValidation",
+      targetType: elbv2.TargetType.IP,
+      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      vpc: vpc,
+      healthCheck: {
+        enabled: true,
+        path: "/validation/health",
+        port: "8080",
+        healthyHttpCodes: "200"
+      }
+    });
+
+    fargateServiceValidation.attachToApplicationTargetGroup(targetGroupFargateValidation);
+
+    new elbv2.ApplicationListenerRule(this, "ValidationRoute", {
+      listener: listener,
+      priority: 2,
+      action: elbv2.ListenerAction.forward([targetGroupFargateValidation]),
+      conditions: [elbv2.ListenerCondition.pathPatterns(["/validation/*"])]
+    });
+
+    // 👇 create bucket
+    const s3BucketInvalidCustomItem = new s3.Bucket(this, "InvalidCustomItems", {
+      bucketName: "InvalidCustomItems",
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      versioned: false,
+      publicReadAccess: false,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+    });
+
+    s3BucketInvalidCustomItem.grantReadWrite(fargateServiceValidation.taskDefinition.taskRole);
 
     // ------------- //
     // --- PROXY --- //
@@ -229,7 +300,7 @@ export class CdkStack extends Stack {
       'Allow HTTP access only from ALB.',
     );
 
-    // ECS Fargate Service - Proxy
+    // ECS Fargate Service - proxy
     const fargateServiceProxy = new ecs.FargateService(this, "FargateServiceProxy", {
       serviceName: "FargateServiceProxy",
       assignPublicIp: false,
@@ -259,7 +330,7 @@ export class CdkStack extends Stack {
 
     new elbv2.ApplicationListenerRule(this, "ProxyRoute", {
       listener: listener,
-      priority: 2,
+      priority: 1,
       action: elbv2.ListenerAction.forward([targetGroupFargateProxy]),
       conditions: [elbv2.ListenerCondition.pathPatterns(["/proxy/*"])]
     });

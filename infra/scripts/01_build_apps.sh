@@ -38,7 +38,7 @@ docker build \
 docker push $persistenceDockerTag
 
 # Validation
-persistenceDockerTag="${DOCKERHUB_NAME}/${validation[name]}:$(date +%s)"
+validationDockerTag="${DOCKERHUB_NAME}/${validation[name]}:$(date +%s)"
 echo "Docker tag: $validationDockerTag"
 
 docker build \
