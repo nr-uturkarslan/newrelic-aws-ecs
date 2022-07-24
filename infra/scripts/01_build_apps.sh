@@ -11,7 +11,12 @@ declare -A persistence
 persistence["name"]="aws-ecs-persistence"
 persistence["port"]=8080
 
-# Persistence
+# Validation
+declare -A validation
+validation["name"]="aws-ecs-validation"
+validation["port"]=8080
+
+# Proxy
 declare -A proxy
 proxy["name"]="aws-ecs-proxy"
 proxy["port"]=8080
@@ -31,6 +36,18 @@ docker build \
   --tag $persistenceDockerTag \
   "../../apps/persistence/."
 docker push $persistenceDockerTag
+
+# Validation
+persistenceDockerTag="${DOCKERHUB_NAME}/${validation[name]}:$(date +%s)"
+echo "Docker tag: $validationDockerTag"
+
+docker build \
+  --platform linux/amd64 \
+  --build-arg newRelicAppName=${validation[name]} \
+  --build-arg newRelicLicenseKey=$NEWRELIC_LICENSE_KEY \
+  --tag $validationDockerTag \
+  "../../apps/validation/."
+docker push $validationDockerTag
 
 # Proxy
 proxyDockerTag="${DOCKERHUB_NAME}/${proxy[name]}:$(date +%s)"
