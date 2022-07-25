@@ -16,5 +16,4 @@ public class CustomItem {
     private String description;
     private String requestTimestamp;
     private String validationTimestamp;
-    private boolean isValid;
 }

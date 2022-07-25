@@ -45,8 +45,12 @@ public class CreateCustomItemService {
 
             return new ResponseEntity<>(responseDto, validationResponse.getStatusCode());
         }
-        else
+        else {
             logger.info("message:Custom item is valid.");
+            createRequestDto.getCustomItem().setValidationTimestamp(
+                    validationResponse.getBody().getData().getCustomItemValidationTimestamp()
+            );
+        }
 
         var persistenceResponse = makeRequestToPersistenceService(
                 headers, createRequestDto);
