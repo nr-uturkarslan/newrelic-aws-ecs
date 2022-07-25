@@ -89,7 +89,8 @@ public class ValidateCustomItemService {
             validationResult.getCustomItemInvalidReasons()
                     .add(InvalidReason.NAME_NOT_PROVIDED.getValue());
             var trace = NewRelic.getAgent().getTracedMethod();
-            trace.addCustomAttribute("invalidReasonNameNotProvided", true);
+            trace.addCustomAttribute("customItemInvalidReason",
+                    InvalidReason.NAME_NOT_PROVIDED.getValue());
         }
     }
 
@@ -104,7 +105,8 @@ public class ValidateCustomItemService {
             validationResult.getCustomItemInvalidReasons()
                     .add(InvalidReason.DESCRIPTION_NOT_PROVIDED.getValue());
             var trace = NewRelic.getAgent().getTracedMethod();
-            trace.addCustomAttribute("invalidReasonDescriptionNotProvided", true);
+            trace.addCustomAttribute("customItemInvalidReason",
+                    InvalidReason.DESCRIPTION_NOT_PROVIDED.getValue());
         }
     }
 
@@ -119,7 +121,8 @@ public class ValidateCustomItemService {
             validationResult.getCustomItemInvalidReasons()
                     .add(InvalidReason.REQUEST_TIMESTAMP_NOT_PROVIDED.getValue());
             var trace = NewRelic.getAgent().getTracedMethod();
-            trace.addCustomAttribute("invalidReasonRequestTimestampNotProvided", true);
+            trace.addCustomAttribute("customItemInvalidReason",
+                    InvalidReason.REQUEST_TIMESTAMP_NOT_PROVIDED.getValue());
         }
     }
 
