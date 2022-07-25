@@ -60,7 +60,11 @@ public class PersistenceController {
 
     @GetMapping("list")
     public ResponseEntity<ResponseDto<List<CustomItem>>> list(
-            @RequestParam(required = false) Integer limit
+            @RequestParam(
+                    name = "limit",
+                    defaultValue = "5",
+                    required = false
+            ) Integer limit
     ) {
         logger.info("message:List method is triggered...");
 

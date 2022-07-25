@@ -6,6 +6,7 @@ import com.newrelic.aws.persistence.entity.CustomItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -22,10 +23,16 @@ public class CustomItemRepository {
         return dynamoDBMapper.load(CustomItem.class, id);
     }
 
-    public List<CustomItem> getCustomItems(int limit) {
-        var scanExpression = new DynamoDBScanExpression()
-                .withLimit(limit);
-        return dynamoDBMapper.scan(CustomItem.class, scanExpression);
+    public List<CustomItem> getCustomItems(Integer providedLimit) {
+        var retrievedCustomItems = dynamoDBMapper.scan(CustomItem.class, new DynamoDBScanExpression());
+        var numCustomItems = retrievedCustomItems.size();
+
+        var limit = Math.min(numCustomItems, providedLimit);
+        var customItems = new ArrayList<CustomItem>();
+        for (var counter = 0; counter < limit; ++counter)
+            customItems.add(retrievedCustomItems.get(counter));
+
+        return customItems;
     }
 
     public void deleteCustomItem(CustomItem customItem) {
