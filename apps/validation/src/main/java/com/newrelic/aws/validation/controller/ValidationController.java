@@ -32,10 +32,10 @@ public class ValidationController {
     public ResponseEntity<ResponseDto<ValidationResult>> create(
             @RequestBody ValidateRequestDto validateRequestDto
     ) {
-        logger.info("message:Validate method is triggered...");
+        logger.info("Validate method is triggered...");
         var response = validateCustomItemService.run(validateRequestDto);
 
-        logger.info("message:Validate method is executed.");
+        logger.info("Validate method is executed.");
         return response;
     }
 }

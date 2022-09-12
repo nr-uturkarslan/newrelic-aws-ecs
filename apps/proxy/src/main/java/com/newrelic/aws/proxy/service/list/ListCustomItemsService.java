@@ -26,10 +26,10 @@ public class ListCustomItemsService {
     public ResponseEntity<ResponseDto<List<CustomItem>>> run(
             Integer limit
     ) {
-        logger.info("message:Making request to persistence service...");
+        logger.info("Making request to persistence service...");
         var response = makeRequestToPersistenceService(limit);
 
-        logger.info("message:Request to persistence service is made.");
+        logger.info("Request to persistence service is made.");
         return response;
     }
 

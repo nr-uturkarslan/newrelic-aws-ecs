@@ -25,15 +25,15 @@ public class ListCustomItemsService {
     public ResponseEntity<ResponseDto<List<CustomItem>>> run(
             Integer limit
     ) {
-        logger.info("message:Retrieving custom items...");
+        logger.info("Retrieving custom items...");
 
         if (limit == 0) {
-            logger.warn("message:Limit cannot be 0. Set to 5 as default.");
+            logger.warn("Limit cannot be 0. Set to 5 as default.");
             limit = 5;
         }
 
         var customItems = customItemRepository.getCustomItems(limit);
-        logger.info("message:Custom items are retrieved.");
+        logger.info("Custom items are retrieved.");
 
         var responseDto = new ResponseDto<List<CustomItem>>();
         responseDto.setMessage("Custom items are retrieved.");

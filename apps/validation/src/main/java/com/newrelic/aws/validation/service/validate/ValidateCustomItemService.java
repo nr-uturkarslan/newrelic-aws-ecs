@@ -38,7 +38,7 @@ public class ValidateCustomItemService {
     public ResponseEntity<ResponseDto<ValidationResult>> run(
             ValidateRequestDto validateRequestDto
     ) {
-        logger.info("message:Validating custom item...");
+        logger.info("Validating custom item...");
 
         var validationResult = new ValidationResult();
         validationResult.setValidationId(UUID.randomUUID().toString());
@@ -59,18 +59,18 @@ public class ValidateCustomItemService {
         validationResult.setCustomItemValidationTimestamp(
                 new Timestamp(System.currentTimeMillis()).toString()
         );
-        logger.info("message:Custom item is validated.");
+        logger.info("Custom item is validated.");
 
         var responseDto = new ResponseDto<ValidationResult>();
         responseDto.setData(validationResult);
 
         if (validationResult.getCustomItemInvalidReasons().isEmpty()) {
-            logger.info("message:Custom item is valid.");
+            logger.info("Custom item is valid.");
             responseDto.setMessage("Custom item is valid.");
             return new ResponseEntity<>(responseDto, HttpStatus.ACCEPTED);
         }
         else {
-            logger.warn("message:Custom item is invalid.");
+            logger.warn("Custom item is invalid.");
             saveInvalidCustomItemToS3(validationResult);
 
             responseDto.setMessage("Custom item is invalid.");
@@ -84,7 +84,7 @@ public class ValidateCustomItemService {
     ) {
         if (validateRequestDto.getCustomItemName() == null ||
                 validateRequestDto.getCustomItemName().isEmpty()) {
-            logger.warn("message:Custom item name is not provided..." +
+            logger.warn("Custom item name is not provided..." +
                     "validationId:" + validationResult.getValidationId());
             validationResult.getCustomItemInvalidReasons()
                     .add(InvalidReason.NAME_NOT_PROVIDED.getValue());
@@ -100,7 +100,7 @@ public class ValidateCustomItemService {
     ){
         if (validateRequestDto.getCustomItemDescription() == null ||
                 validateRequestDto.getCustomItemDescription().isEmpty()) {
-            logger.warn("message:Custom item description is not provided..." +
+            logger.warn("Custom item description is not provided..." +
                     "validationId:" + validationResult.getValidationId());
             validationResult.getCustomItemInvalidReasons()
                     .add(InvalidReason.DESCRIPTION_NOT_PROVIDED.getValue());
@@ -116,7 +116,7 @@ public class ValidateCustomItemService {
     ){
         if (validateRequestDto.getCustomItemRequestTimestamp() == null ||
                 validateRequestDto.getCustomItemRequestTimestamp().isEmpty()) {
-            logger.warn("message:Custom item request timestamp is not provided..." +
+            logger.warn("Custom item request timestamp is not provided..." +
                     "validationId:" + validationResult.getValidationId());
             validationResult.getCustomItemInvalidReasons()
                     .add(InvalidReason.REQUEST_TIMESTAMP_NOT_PROVIDED.getValue());
@@ -131,14 +131,14 @@ public class ValidateCustomItemService {
     ) {
         try {
 
-            logger.info("message:Putting invalid custom item into S3 bucket...");
+            logger.info("Putting invalid custom item into S3 bucket...");
 
             var validationResultAsString = gson.toJson(validationResult);
-            logger.info("message:Validation result as string ->" + validationResultAsString);
+            logger.info("Validation result as string ->" + validationResultAsString);
 
             var inputStream = new ByteArrayInputStream(
                     validationResultAsString.getBytes());
-            logger.info("message:Converted to input stream.");
+            logger.info("Converted to input stream.");
 
             var putObjectRequest = new PutObjectRequest(
                     "invalid-custom-items",
@@ -146,14 +146,14 @@ public class ValidateCustomItemService {
                     inputStream,
                     new ObjectMetadata()
             );
-            logger.info("message:PutObjectRequest is created.");
+            logger.info("PutObjectRequest is created.");
 
             amazonS3.putObject(putObjectRequest);
-            logger.info("message:Invalid custom item is put into S3 bucket.");
+            logger.info("Invalid custom item is put into S3 bucket.");
         }
         catch (AmazonServiceException e) {
-            logger.info("message:Error is occurred by putting validation result into S3");
-            logger.error("message:" + e.getErrorMessage());
+            logger.info("Error is occurred by putting validation result into S3");
+            logger.error(e.getErrorMessage());
         }
     }
 }

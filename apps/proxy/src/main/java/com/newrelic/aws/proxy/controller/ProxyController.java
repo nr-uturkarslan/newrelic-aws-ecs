@@ -45,10 +45,10 @@ public class ProxyController {
             @RequestHeader Map<String, String> headers,
             @RequestBody CreateRequestDto createRequestDto
     ) {
-        logger.info("message:Create method is triggered...");
+        logger.info("Create method is triggered...");
         var responseDto = createCustomItemService.run(headers, createRequestDto);
 
-        logger.info("message:Create method is executed.");
+        logger.info("Create method is executed.");
         return responseDto;
     }
 
@@ -60,11 +60,11 @@ public class ProxyController {
                     required = false
             ) Integer limit
     ) {
-        logger.info("message:List method is triggered...");
+        logger.info("List method is triggered...");
 
         var responseDto = listCustomItemsService.run(limit);
 
-        logger.info("message:List method is executed.");
+        logger.info("List method is executed.");
 
         return responseDto;
     }
@@ -73,11 +73,11 @@ public class ProxyController {
     public ResponseEntity<ResponseDto<CustomItem>> create(
             @RequestParam String customItemId
     ) {
-        logger.info("message:Delete method is triggered...");
+        logger.info("Delete method is triggered...");
 
         var responseDto = deleteCustomItemService.run(customItemId);
 
-        logger.info("message:Delete method is executed.");
+        logger.info("Delete method is executed.");
 
         return responseDto;
     }

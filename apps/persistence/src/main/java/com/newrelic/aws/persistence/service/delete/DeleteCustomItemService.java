@@ -22,12 +22,12 @@ public class DeleteCustomItemService {
     public ResponseEntity<ResponseDto<CustomItem>> run(
             String customItemId
     ) {
-        logger.info("message:Deleting custom item...");
+        logger.info("Deleting custom item...");
 
         var customItem = customItemRepository.getCustomItemById(customItemId);
         if (customItem == null)
         {
-            logger.error("message:Custom item is not found.");
+            logger.error("Custom item is not found.");
 
             var responseDto = new ResponseDto<CustomItem>();
             responseDto.setMessage("Custom item is not found.");
@@ -36,7 +36,7 @@ public class DeleteCustomItemService {
         }
 
         customItemRepository.deleteCustomItem(customItem);
-        logger.info("message:Custom item is deleted.");
+        logger.info("Custom item is deleted.");
 
         var responseDto = new ResponseDto<CustomItem>();
         responseDto.setMessage("Custom item is deleted.");

@@ -26,12 +26,12 @@ public class CreateCustomItemService {
     public ResponseEntity<ResponseDto<CustomItem>> run(
             CreateRequestDto createRequestDto
     ) {
-        logger.info("message:Creating custom item...");
+        logger.info("Creating custom item...");
         var customItem = createRequestDto.getCustomItem();
         customItem.setId(UUID.randomUUID().toString());
 
         customItemRepository.saveCustomItem(customItem);
-        logger.info("message:Custom item is created.");
+        logger.info("Custom item is created.");
 
         var responseDto = new ResponseDto<CustomItem>();
         responseDto.setMessage("Custom item is created.");

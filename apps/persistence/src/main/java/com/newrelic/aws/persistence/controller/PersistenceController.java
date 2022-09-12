@@ -44,7 +44,7 @@ public class PersistenceController {
             @RequestHeader Map<String, String> headers,
             @RequestBody CreateRequestDto createRequestDto
     ) {
-        logger.info("message:Create method is triggered...");
+        logger.info("Create method is triggered...");
 
         for (var header : headers.entrySet()) {
             logger.info("Key:" + header.getKey());
@@ -53,7 +53,7 @@ public class PersistenceController {
 
         var responseDto = createCustomItemService.run(createRequestDto);
 
-        logger.info("message:Create method is executed.");
+        logger.info("Create method is executed.");
 
         return responseDto;
     }
@@ -66,11 +66,11 @@ public class PersistenceController {
                     required = false
             ) Integer limit
     ) {
-        logger.info("message:List method is triggered...");
+        logger.info("List method is triggered...");
 
         var responseDto = listCustomItemsService.run(limit);
 
-        logger.info("message:List method is executed.");
+        logger.info("List method is executed.");
 
         return responseDto;
     }
@@ -79,11 +79,11 @@ public class PersistenceController {
     public ResponseEntity<ResponseDto<CustomItem>> create(
             @RequestParam String customItemId
     ) {
-        logger.info("message:Delete method is triggered...");
+        logger.info("Delete method is triggered...");
 
         var responseDto = deleteCustomItemService.run(customItemId);
 
-        logger.info("message:Delete method is executed.");
+        logger.info("Delete method is executed.");
 
         return responseDto;
     }

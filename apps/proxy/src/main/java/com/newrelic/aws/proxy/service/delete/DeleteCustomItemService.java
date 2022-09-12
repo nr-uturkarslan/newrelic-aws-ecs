@@ -24,10 +24,10 @@ public class DeleteCustomItemService {
     public ResponseEntity<ResponseDto<CustomItem>> run(
             String customItemId
     ) {
-        logger.info("message:Making request to persistence service...");
+        logger.info("Making request to persistence service...");
         var response = makeRequestToPersistenceService(customItemId);
 
-        logger.info("message:Request to persistence service is made.");
+        logger.info("Request to persistence service is made.");
         return response;
     }
 
