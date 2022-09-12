@@ -1,5 +1,6 @@
 package com.newrelic.aws.proxy.service.create;
 
+import com.newrelic.api.agent.NewRelic;
 import com.newrelic.aws.proxy.dto.ResponseDto;
 import com.newrelic.aws.proxy.entity.CustomItem;
 import com.newrelic.aws.proxy.service.create.dto.CreateRequestDto;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -34,7 +36,9 @@ public class CreateCustomItemService {
         var validationResponse = makeRequestToValidationService(
                 headers, createRequestDto);
         if (validationResponse.getStatusCode() != HttpStatus.ACCEPTED) {
-            logger.error("message:Custom item is not valid.");
+            logger.error("Custom item is not valid.");
+
+            recordInvalidCustomItemEvent(headers);
 
             var data = new CreateResponseDto();
             data.setValidationResult(validationResponse.getBody().getData());
@@ -46,7 +50,7 @@ public class CreateCustomItemService {
             return new ResponseEntity<>(responseDto, validationResponse.getStatusCode());
         }
         else {
-            logger.info("message:Custom item is valid.");
+            logger.info("Custom item is valid.");
             createRequestDto.getCustomItem().setValidationTimestamp(
                     validationResponse.getBody().getData().getCustomItemValidationTimestamp()
             );
@@ -69,7 +73,7 @@ public class CreateCustomItemService {
             Map<String, String> headers,
             CreateRequestDto createRequestDto
     ) {
-        logger.info("message:Making request to validation service...");
+        logger.info("Making request to validation service...");
 
         var validateRequestDto = new ValidateRequestDto();
         validateRequestDto.setCustomItemName(
@@ -98,7 +102,7 @@ public class CreateCustomItemService {
         var response = restTemplate.exchange(persistenceCreateUrl, HttpMethod.POST, entity,
                 new ParameterizedTypeReference<ResponseDto<ValidationResult>>() {});
 
-        logger.info("message:Request to validation service is made.");
+        logger.info("Request to validation service is made.");
         return response;
     }
 
@@ -106,7 +110,7 @@ public class CreateCustomItemService {
             Map<String, String> headers,
             CreateRequestDto createRequestDto
     ) {
-        logger.info("message:Making request to persistence service...");
+        logger.info("Making request to persistence service...");
 
         var loadBalancerUrl = "http://" + System.getenv("LOAD_BALANCER_URL");
         var persistenceCreateUrl = loadBalancerUrl + "/persistence/create";
@@ -124,7 +128,20 @@ public class CreateCustomItemService {
         var response = restTemplate.exchange(persistenceCreateUrl, HttpMethod.POST, entity,
                 new ParameterizedTypeReference<ResponseDto<CustomItem>>() {});
 
-        logger.info("message:Request to persistence service is made.");
+        logger.info("Request to persistence service is made.");
         return response;
+    }
+
+    private void recordInvalidCustomItemEvent(
+            Map<String, String> headers
+    ) {
+        var customEventAttributes = new HashMap<String, String>();
+        if (headers.containsKey("x-user-name"))
+            customEventAttributes.put("userName", headers.get("x-user-name"));
+        if (headers.containsKey("x-user-department"))
+            customEventAttributes.put("departmentName", headers.get("x-user-department"));
+
+        NewRelic.getAgent().getInsights()
+                .recordCustomEvent("InvalidCustomItemEvent", customEventAttributes);
     }
 }
