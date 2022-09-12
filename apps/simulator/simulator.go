@@ -15,7 +15,7 @@ const LOAD_BALANCER_URL string = "http://LoadBalancer-359051424.eu-west-1.elb.am
 
 const CREATE_INTERVAL = time.Second * 4
 const LIST_INTERVAL = time.Second * 2
-const DELETE_INTERVAL = time.Second * 8
+const DELETE_INTERVAL = time.Second * 4
 
 type RequestDto struct {
 	CustomItem CustomItem `json:"customItem"`
@@ -37,113 +37,119 @@ func (s *Simulator) initialize() {
 }
 
 func (s *Simulator) makeCreateRequests() {
-
 	for {
-		department, user := s.getRandomDepartmentAndUser()
-		requestDto := RequestDto{
-			CustomItem: s.getRandomCustomItem(),
-		}
+		func() {
+			department, user := s.getRandomDepartmentAndUser()
+			requestDto := RequestDto{
+				CustomItem: s.getRandomCustomItem(),
+			}
 
-		client := &http.Client{
-			Timeout: time.Second * 10,
-		}
+			client := &http.Client{
+				Timeout: time.Second * 10,
+			}
 
-		requestDtoInBytes, _ := json.Marshal(requestDto)
-		request, _ := http.NewRequest(http.MethodPost,
-			LOAD_BALANCER_URL+"/proxy/create",
-			bytes.NewBufferString(string(requestDtoInBytes)),
-		)
+			requestDtoInBytes, _ := json.Marshal(requestDto)
+			request, _ := http.NewRequest(http.MethodPost,
+				LOAD_BALANCER_URL+"/proxy/create",
+				bytes.NewBufferString(string(requestDtoInBytes)),
+			)
 
-		request.Header.Set("Content-Type", "application/json")
-		request.Header.Add("x-user-department", department)
-		request.Header.Add("x-user-name", user)
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Add("x-user-department", department)
+			request.Header.Add("x-user-name", user)
 
-		response, err := client.Do(request)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer response.Body.Close()
+			response, err := client.Do(request)
+			if err != nil {
+				fmt.Println(err)
+			}
+			defer response.Body.Close()
 
-		fmt.Println("Create response: " + strconv.Itoa(response.StatusCode))
-		time.Sleep(CREATE_INTERVAL)
+			fmt.Println("Create response: " + strconv.Itoa(response.StatusCode))
+			time.Sleep(CREATE_INTERVAL)
+		}()
 	}
 }
 
 func (s *Simulator) makeListRequests() {
-
 	for {
-		department, user := s.getRandomDepartmentAndUser()
+		func() {
+			department, user := s.getRandomDepartmentAndUser()
 
-		client := &http.Client{
-			Timeout: time.Second * 10,
-		}
+			client := &http.Client{
+				Timeout: time.Second * 10,
+			}
 
-		request, _ := http.NewRequest(http.MethodGet,
-			LOAD_BALANCER_URL+"/proxy/list?limit=5", nil)
+			request, _ := http.NewRequest(http.MethodGet,
+				LOAD_BALANCER_URL+"/proxy/list?limit=5", nil)
 
-		request.Header.Set("Content-Type", "application/json")
-		request.Header.Add("x-user-department", department)
-		request.Header.Add("x-user-name", user)
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Add("x-user-department", department)
+			request.Header.Add("x-user-name", user)
 
-		response, err := client.Do(request)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer response.Body.Close()
+			response, err := client.Do(request)
+			if err != nil {
+				fmt.Println(err)
+			}
+			defer response.Body.Close()
 
-		fmt.Println("List response: " + strconv.Itoa(response.StatusCode))
-		time.Sleep(LIST_INTERVAL)
+			fmt.Println("List response: " + strconv.Itoa(response.StatusCode))
+			time.Sleep(LIST_INTERVAL)
+		}()
 	}
 }
 
 func (s *Simulator) makeDeleteRequests() {
-
 	for {
-		time.Sleep(DELETE_INTERVAL)
-		department, user := s.getRandomDepartmentAndUser()
+		func() {
+			time.Sleep(DELETE_INTERVAL)
+			department, user := s.getRandomDepartmentAndUser()
 
-		listClient := &http.Client{
-			Timeout: time.Second * 10,
-		}
+			listClient := &http.Client{
+				Timeout: time.Second * 10,
+			}
 
-		listRequest, _ := http.NewRequest(http.MethodGet,
-			LOAD_BALANCER_URL+"/proxy/list?limit=1", nil)
+			listRequest, _ := http.NewRequest(http.MethodGet,
+				LOAD_BALANCER_URL+"/proxy/list?limit=1", nil)
 
-		listRequest.Header.Set("Content-Type", "application/json")
-		listRequest.Header.Add("x-user-department", department)
-		listRequest.Header.Add("x-user-name", user)
+			listRequest.Header.Set("Content-Type", "application/json")
+			listRequest.Header.Add("x-user-department", department)
+			listRequest.Header.Add("x-user-name", user)
 
-		listResponse, err := listClient.Do(listRequest)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer listResponse.Body.Close()
+			listResponse, err := listClient.Do(listRequest)
+			if err != nil {
+				fmt.Println(err)
+			}
+			defer listResponse.Body.Close()
 
-		responseDtoInBytes, err := ioutil.ReadAll(listResponse.Body)
+			responseDtoInBytes, err := ioutil.ReadAll(listResponse.Body)
+			if err != nil {
+				fmt.Println(err)
+			}
 
-		var responseDto ResponseDto
-		json.Unmarshal(responseDtoInBytes, &responseDto)
+			var responseDto ResponseDto
+			json.Unmarshal(responseDtoInBytes, &responseDto)
 
-		customItem := responseDto.Data[0]
+			customItem := responseDto.Data[0]
 
-		deleteClient := &http.Client{
-			Timeout: time.Second * 10,
-		}
+			deleteClient := &http.Client{
+				Timeout: time.Second * 10,
+			}
 
-		deleteRequest, _ := http.NewRequest(http.MethodDelete,
-			LOAD_BALANCER_URL+"/proxy/delete?customItemId="+customItem.Id, nil)
+			deleteRequest, _ := http.NewRequest(http.MethodDelete,
+				LOAD_BALANCER_URL+"/proxy/delete?customItemId="+customItem.Id, nil)
 
-		listRequest.Header.Set("Content-Type", "application/json")
-		listRequest.Header.Add("x-user-department", department)
-		listRequest.Header.Add("x-user-name", user)
+			listRequest.Header.Set("Content-Type", "application/json")
+			listRequest.Header.Add("x-user-department", department)
+			listRequest.Header.Add("x-user-name", user)
 
-		deleteResponse, err := deleteClient.Do(deleteRequest)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer deleteResponse.Body.Close()
+			deleteResponse, err := deleteClient.Do(deleteRequest)
+			if err != nil {
+				fmt.Println(err)
+			}
+			defer deleteResponse.Body.Close()
 
-		fmt.Println("Delete response: " + strconv.Itoa(deleteResponse.StatusCode))
+			fmt.Println("Delete response: " + strconv.Itoa(deleteResponse.StatusCode))
+		}()
 	}
 }
 
