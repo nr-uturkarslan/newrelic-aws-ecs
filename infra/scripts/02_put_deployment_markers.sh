@@ -19,10 +19,10 @@ fi
 
 # Get application ID
 appId=$(curl -X GET 'https://api.eu.newrelic.com/v2/applications.json' \
-    -H "Api-Key:${NEWRELIC_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -H "Accept: application/json" \
-    | jq -r '.applications[] | select(.name==''"'${appName}'"'') | .id')
+  -H "Api-Key:${NEWRELIC_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  | jq -r '.applications[] | select(.name==''"'${appName}'"'') | .id')
 
 # Get timestamp
 timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
