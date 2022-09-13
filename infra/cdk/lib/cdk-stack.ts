@@ -7,9 +7,9 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 
-const dockerImagePersistence = "uturkarslan/aws-ecs-persistence:1658771540";
-const dockerImageValidation = "uturkarslan/aws-ecs-validation:1658774427";
-const dockerImageProxy = "uturkarslan/aws-ecs-proxy:1658771868";
+const dockerImagePersistence = "uturkarslan/aws-ecs-persistence:1663092899";
+const dockerImageValidation = "uturkarslan/aws-ecs-validation:1663092970";
+const dockerImageProxy = "uturkarslan/aws-ecs-proxy:1663100628";
 
 export class CdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
