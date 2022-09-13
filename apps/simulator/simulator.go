@@ -15,7 +15,7 @@ const LOAD_BALANCER_URL string = "LOAD_BALANCER_URL"
 
 const CREATE_INTERVAL = time.Second * 4
 const LIST_INTERVAL = time.Second * 2
-const DELETE_INTERVAL = time.Second * 4
+const DELETE_INTERVAL = time.Second * 8
 
 type RequestDto struct {
 	CustomItem CustomItem `json:"customItem"`
