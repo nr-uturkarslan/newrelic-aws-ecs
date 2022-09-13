@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const LOAD_BALANCER_URL string = "http://LoadBalancer-359051424.eu-west-1.elb.amazonaws.com"
+const LOAD_BALANCER_URL string = "LOAD_BALANCER_URL"
 
 const CREATE_INTERVAL = time.Second * 4
 const LIST_INTERVAL = time.Second * 2
@@ -128,6 +128,11 @@ func (s *Simulator) makeDeleteRequests() {
 
 			var responseDto ResponseDto
 			json.Unmarshal(responseDtoInBytes, &responseDto)
+
+			if len(responseDto.Data) == 0 {
+				fmt.Println("No items to delete.")
+				return
+			}
 
 			customItem := responseDto.Data[0]
 
