@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const LOAD_BALANCER_URL string = "LOAD_BALANCER_URL"
+const LOAD_BALANCER_URL string = "http://LOAD_BALANCER_URL"
 
 const CREATE_INTERVAL = time.Second * 4
 const LIST_INTERVAL = time.Second * 2
@@ -61,6 +61,7 @@ func (s *Simulator) makeCreateRequests() {
 			response, err := client.Do(request)
 			if err != nil {
 				fmt.Println(err)
+				return
 			}
 			defer response.Body.Close()
 
@@ -89,6 +90,7 @@ func (s *Simulator) makeListRequests() {
 			response, err := client.Do(request)
 			if err != nil {
 				fmt.Println(err)
+				return
 			}
 			defer response.Body.Close()
 
@@ -118,6 +120,7 @@ func (s *Simulator) makeDeleteRequests() {
 			listResponse, err := listClient.Do(listRequest)
 			if err != nil {
 				fmt.Println(err)
+				return
 			}
 			defer listResponse.Body.Close()
 
@@ -150,6 +153,7 @@ func (s *Simulator) makeDeleteRequests() {
 			deleteResponse, err := deleteClient.Do(deleteRequest)
 			if err != nil {
 				fmt.Println(err)
+				return
 			}
 			defer deleteResponse.Body.Close()
 
